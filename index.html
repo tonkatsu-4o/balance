@@ -47,7 +47,7 @@
             </div>
 
             <!-- 設定セクション -->
-            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-md mb-8">
+            <div class="bg-white p-3 sm:p-6 rounded-2xl shadow-md mb-8">
                 <div class="flex flex-col md:grid md:grid-cols-2 gap-y-6 md:gap-6">
                     <div class="min-w-0">
                         <label for="month-selector" class="block text-sm font-medium text-gray-600 mb-2">対象月を選択</label>
@@ -81,7 +81,7 @@
             </div>
 
             <!-- 収支入力セクション -->
-            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-md mb-8">
+            <div class="bg-white p-3 sm:p-6 rounded-2xl shadow-md mb-8">
                 <h2 class="text-xl font-bold mb-4 text-gray-700">収支の追加</h2>
                 <form id="transaction-form" class="flex flex-col sm:grid sm:grid-cols-2 md:grid-cols-5 gap-4 sm:items-end">
                     <div class="min-w-0">
@@ -215,6 +215,7 @@
             const month = (today.getMonth() + 1).toString().padStart(2, '0');
             monthSelector.value = `${year}-${month}`;
             transactionDateInput.valueAsDate = today;
+            updateDateInputRange();
         }
 
         async function initializeFirebase() {
@@ -264,7 +265,10 @@
 
         // --- イベントリスナー ---
         function addEventListeners() {
-            monthSelector.addEventListener('change', () => connectToKakeibo(hostId));
+            monthSelector.addEventListener('change', () => {
+                updateDateInputRange();
+                connectToKakeibo(hostId);
+            });
             budgetInput.addEventListener('change', handleBudgetChange);
             transactionForm.addEventListener('submit', addTransaction);
             copyIdButton.addEventListener('click', copyUserId);
@@ -409,6 +413,28 @@
         }
 
         // --- ヘルパー関数 ---
+        function updateDateInputRange() {
+            const selectedMonth = monthSelector.value;
+            if (!selectedMonth) return;
+
+            const [year, month] = selectedMonth.split('-').map(Number);
+            
+            const firstDay = `${selectedMonth}-01`;
+            
+            // 月の最終日を取得 (例: 2025年10月 -> new Date(2025, 10, 0) -> 10月31日)
+            const lastDay = new Date(year, month, 0).getDate();
+            const lastDayStr = String(lastDay).padStart(2, '0');
+            const lastDate = `${selectedMonth}-${lastDayStr}`;
+
+            transactionDateInput.min = firstDay;
+            transactionDateInput.max = lastDate;
+
+            // 現在の日付が範囲外なら修正
+            if (transactionDateInput.value < firstDay || transactionDateInput.value > lastDate) {
+                transactionDateInput.value = firstDay;
+            }
+        }
+
         function openSettingsModal() {
             settingsModal.classList.remove('hidden');
             setTimeout(() => {
