@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>かんたん家計簿（共有版）</title>
+    <title>かんたん家計簿（公開版）</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -33,7 +33,7 @@
             <p class="text-gray-500 mt-2">Firebaseでデータを共有し、複数人で管理できます</p>
             <button id="settings-button" class="absolute top-0 right-0 p-2 text-gray-500 hover:text-gray-800 transition" aria-label="設定を開く">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0 3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
             </button>
@@ -172,7 +172,7 @@
     <script type="module">
         // Firebase SDKのインポート
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // UI要素の取得
@@ -201,9 +201,6 @@
         // Firebase関連の変数
         let db, auth, currentUser, hostId;
         let unsubscribe; // onSnapshotのリスナーを解除するための変数
-
-        // このアプリのID（環境変数から取得）
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-kakeibo-app';
         
         // --- 初期化処理 ---
         async function initialize() {
@@ -222,15 +219,22 @@
 
         async function initializeFirebase() {
             try {
-                // __firebase_configが提供されているかチェック
-                if (typeof __firebase_config === 'undefined' || !__firebase_config) {
-                    throw new Error('Firebaseの接続情報が提供されていません。プレビュー環境で実行してください。');
-                }
-                const firebaseConfig = JSON.parse(__firebase_config);
-                
-                // 設定に必要なキーが存在するか確認
-                if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-                    throw new Error('Firebaseの接続情報が不完全です。');
+                // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+                // 【重要】ステップ1でコピーした、あなた自身のFirebase接続情報をここに貼り付けてください
+                // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+                const firebaseConfig = {
+                    apiKey: "AIzaSyBKBlU5uXbM9zpWcYHV7f-pP3yRA05TOVU",
+                    authDomain: "kakeibo-96344.firebaseapp.com",
+                    projectId: "kakeibo-96344",
+                    storageBucket: "kakeibo-96344.appspot.com",
+                    messagingSenderId: "211705377735",
+                    appId: "1:211705377735:web:4158c4f9ae001f12c61fe2",
+                    measurementId: "G-GBCB94Z35F"
+                };
+                // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+                if (firebaseConfig.apiKey === "YOUR_API_KEY") {
+                    throw new Error('Firebaseの接続情報が設定されていません。コード内の指示に従って、ご自身のFirebaseプロジェクトの設定情報を貼り付けてください。');
                 }
 
                 const app = initializeApp(firebaseConfig);
@@ -242,7 +246,6 @@
                         currentUser = user;
                         userIdDisplay.textContent = currentUser.uid;
                         
-                        // 保存されている接続先IDを読み込むか、自分のIDをデフォルトにする
                         const savedHostId = localStorage.getItem('kakeiboHostId');
                         hostId = savedHostId || currentUser.uid;
                         
@@ -250,17 +253,11 @@
 
                     } else {
                         // ユーザーがいない場合、匿名認証を行う
-                        const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                        if (token) {
-                            await signInWithCustomToken(auth, token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
+                        await signInAnonymously(auth);
                     }
                 });
             } catch (error) {
                 console.error("Firebaseの初期化に失敗しました:", error);
-                // より詳細なエラーメッセージを表示
                 alert("データベースへの接続に失敗しました。\n\n詳細: " + error.message + "\n\nページを再読み込みするか、開発者コンソールを確認してください。");
             }
         }
@@ -294,7 +291,6 @@
         function loadData() {
             loadingOverlay.classList.remove('hidden');
 
-            // 既存のリスナーがあれば解除
             if (unsubscribe) {
                 unsubscribe();
             }
@@ -304,8 +300,9 @@
                 loadingOverlay.classList.add('hidden');
                 return;
             };
-
-            const docRef = doc(db, "artifacts", appId, "public", "data", "kakeibo", hostId);
+            
+            // データベースのパスを公開用に変更
+            const docRef = doc(db, "kakeibo", hostId);
 
             unsubscribe = onSnapshot(docRef, (docSnap) => {
                 const allData = docSnap.data() || {};
@@ -322,8 +319,9 @@
         function render(data) {
             budgetInput.value = data.budget || '';
 
-            const totalExpense = data.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-            const totalIncome = data.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            const transactions = data.transactions || [];
+            const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const remaining = (data.budget || 0) + totalIncome - totalExpense;
 
             summaryBudget.textContent = `¥${(data.budget || 0).toLocaleString()}`;
@@ -332,10 +330,10 @@
             summaryRemaining.textContent = `¥${remaining.toLocaleString()}`;
             
             transactionList.innerHTML = '';
-            if (data.transactions.length === 0) {
+            if (transactions.length === 0) {
                 transactionList.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500 p-4">まだ収支はありません。</td></tr>`;
             } else {
-                data.transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(t => {
+                transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(t => {
                     const tr = document.createElement('tr');
                     tr.className = 'border-b hover:bg-gray-50';
                     const amountColor = t.type === 'income' ? 'text-green-600' : 'text-red-600';
@@ -359,7 +357,7 @@
             if (isNaN(newBudget) || newBudget < 0) return;
             
             const selectedMonth = monthSelector.value;
-            const docRef = doc(db, "artifacts", appId, "public", "data", "kakeibo", hostId);
+            const docRef = doc(db, "kakeibo", hostId);
 
             try {
                 await setDoc(docRef, { [selectedMonth]: { budget: newBudget } }, { merge: true });
@@ -385,13 +383,10 @@
 
             const newTransaction = { id: Date.now(), type, date, description, amount };
             const selectedMonth = monthSelector.value;
-            const docRef = doc(db, "artifacts", appId, "public", "data", "kakeibo", hostId);
+            const docRef = doc(db, "kakeibo", hostId);
 
             try {
-                // ドキュメントが存在しない場合に備えて、まずsetDocで初期化
-                await setDoc(docRef, { [selectedMonth]: { transactions: [] } }, { merge: true });
-                // その後、arrayUnionで要素を追加
-                await updateDoc(docRef, { [`${selectedMonth}.transactions`]: arrayUnion(newTransaction) });
+                await setDoc(docRef, { [selectedMonth]: { transactions: arrayUnion(newTransaction) } }, { merge: true });
                 
                 transactionDescriptionInput.value = '';
                 transactionAmountInput.value = '';
@@ -404,7 +399,7 @@
 
         async function deleteTransaction(transactionToDelete) {
             const selectedMonth = monthSelector.value;
-            const docRef = doc(db, "artifacts", appId, "public", "data", "kakeibo", hostId);
+            const docRef = doc(db, "kakeibo", hostId);
             try {
                 await updateDoc(docRef, { [`${selectedMonth}.transactions`]: arrayRemove(transactionToDelete) });
             } catch (error) {
@@ -446,7 +441,6 @@
                 connectToKakeibo(newHostId);
                 closeSettingsModal();
             } else if (!newHostId) {
-                // 入力が空の場合は自分の家計簿に戻る
                 connectToKakeibo(currentUser.uid);
             }
         }
@@ -457,10 +451,8 @@
             return p.innerHTML;
         }
 
-        // アプリケーションの開始
         initialize();
     </script>
 </body>
 </html>
-
 
