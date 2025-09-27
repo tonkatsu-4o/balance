@@ -33,7 +33,7 @@
             <p class="text-gray-500 mt-2">Firebaseでデータを共有し、複数人で管理できます</p>
             <button id="settings-button" class="absolute top-0 right-0 p-2 text-gray-500 hover:text-gray-800 transition" aria-label="設定を開く">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.438.995a6.473 6.473 0 010 .255c0 .382.145.755.438.995l1.003.827c.424.35.534.954.26 1.431l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.075.124a6.57 6.57 0 01-.22.127c-.332.183-.582.495-.645.87l-.213 1.281c-.09.543-.56.94-1.11.94h-2.593c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.52 6.52 0 01-.22-.127c-.324-.196-.72-.257-1.075-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.296-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.437-.995a6.473 6.473 0 010-.255c0-.382-.145-.755-.437-.995l-1.004-.827a1.125 1.125 0 01-.26-1.431l1.296-2.247a1.125 1.125 0 011.37.49l1.217.456c.355.133.75.072 1.075-.124a6.57 6.57 0 01.22-.127c.332-.183.582-.495.645-.87l.213-1.281z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.438.995a6.473 6.473 0 010 .255c0 .382.145.755.438.995l1.003.827c.424.35.534.954.26 1.431l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.075.124a6.57 6.57 0 01-.22.127c-.332.183-.582.495-.645.87l-.213 1.281c-.09.543-.56.94-1.11.94h-2.593c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.52 6.52 0 01-.22-.127c-.324-.196-.72-.257-1.075-.124l-1.217.456a1.125 1.125 D'où 01-1.37-.49l-1.296-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.437-.995a6.473 6.473 0 010-.255c0-.382-.145-.755-.437-.995l-1.004-.827a1.125 1.125 0 01-.26-1.431l1.296-2.247a1.125 1.125 0 011.37.49l1.217.456c.355.133.75.072 1.075-.124a6.57 6.57 0 01.22-.127c.332-.183.582-.495.645-.87l.213-1.281z" />
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
             </button>
@@ -47,8 +47,8 @@
             </div>
 
             <!-- 設定セクション -->
-            <div class="bg-white p-2 sm:p-6 rounded-2xl shadow-md mb-8">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-md mb-8">
+                <div class="flex flex-col md:grid md:grid-cols-2 gap-y-6 md:gap-6">
                     <div>
                         <label for="month-selector" class="block text-sm font-medium text-gray-600 mb-2">対象月を選択</label>
                         <input type="month" id="month-selector" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
@@ -81,9 +81,9 @@
             </div>
 
             <!-- 収支入力セクション -->
-            <div class="bg-white p-2 sm:p-6 rounded-2xl shadow-md mb-8">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-md mb-8">
                 <h2 class="text-xl font-bold mb-4 text-gray-700">収支の追加</h2>
-                <form id="transaction-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
+                <form id="transaction-form" class="flex flex-col sm:grid sm:grid-cols-2 md:grid-cols-5 gap-4 sm:items-end">
                     <div>
                         <label for="transaction-date" class="block text-sm font-medium text-gray-600 mb-1">日付</label>
                         <input type="date" id="transaction-date" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
@@ -112,7 +112,7 @@
             </div>
 
             <!-- 収支リストセクション -->
-            <div class="bg-white p-2 sm:p-6 rounded-2xl shadow-md">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-md">
                 <h2 class="text-xl font-bold mb-4 text-gray-700">収支リスト</h2>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
