@@ -222,7 +222,17 @@
 
         async function initializeFirebase() {
             try {
-                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                // __firebase_configが提供されているかチェック
+                if (typeof __firebase_config === 'undefined' || !__firebase_config) {
+                    throw new Error('Firebaseの接続情報が提供されていません。プレビュー環境で実行してください。');
+                }
+                const firebaseConfig = JSON.parse(__firebase_config);
+                
+                // 設定に必要なキーが存在するか確認
+                if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+                    throw new Error('Firebaseの接続情報が不完全です。');
+                }
+
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
@@ -250,7 +260,8 @@
                 });
             } catch (error) {
                 console.error("Firebaseの初期化に失敗しました:", error);
-                alert("データベースへの接続に失敗しました。ページを再読み込みしてください。");
+                // より詳細なエラーメッセージを表示
+                alert("データベースへの接続に失敗しました。\n\n詳細: " + error.message + "\n\nページを再読み込みするか、開発者コンソールを確認してください。");
             }
         }
 
@@ -451,4 +462,5 @@
     </script>
 </body>
 </html>
+
 
