@@ -1,484 +1,519 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>かんたん家計簿</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', 'Noto Sans JP', sans-serif;
-        }
-        /* ちょっとしたローディングアニメーション */
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
-</head>
-<body class="bg-gray-100 text-gray-800">
+import React, { useState, useEffect, useMemo } from 'react';
+import { Terminal, Folder, FileText, ChevronRight, ChevronDown, Home, Atom, Cpu, Search, Menu, X } from 'lucide-react';
 
-    <div class="container mx-auto p-2 sm:p-6 lg:p-8 max-w-4xl">
-        <header class="text-center mb-8 relative">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-700">かんたん家計簿</h1>
-            <p class="text-gray-500 mt-2">Firebaseでデータを共有し、複数人で管理できます</p>
-            <button id="settings-button" class="absolute top-0 right-0 p-2 text-gray-500 hover:text-gray-800 transition" aria-label="設定を開く">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.438.995a6.473 6.473 0 010 .255c0 .382.145.755.438.995l1.003.827c.424.35.534.954.26 1.431l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.075.124a6.57 6.57 0 01-.22.127c-.332.183-.582.495-.645.87l-.213 1.281c-.09.543-.56.94-1.11.94h-2.593c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.52 6.52 0 01-.22-.127c-.324-.196-.72-.257-1.075-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.296-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.437-.995a6.473 6.473 0 010-.255c0-.382-.145-.755-.437-.995l-1.004-.827a1.125 1.125 0 01-.26-1.431l1.296-2.247a1.125 1.125 0 011.37.49l1.217.456c.355.133.75.072 1.075-.124a6.57 6.57 0 01.22-.127c.332-.183-.582.495-.645-.87l.213-1.281z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-            </button>
-        </header>
+/**
+ * ==========================================
+ * ユーザー設定エリア：記事データ (Article Data)
+ * ==========================================
+ * ここに記事を追加していくことで、自動的にサイドバーの階層が生成されます。
+ * content内ではLaTeX形式 ($...$ または $$...$$) が使用可能です。
+ */
+const articles = [
+  {
+    id: 'intro',
+    path: 'General/Introduction',
+    title: 'Welcome to FutureWiki',
+    date: '2026-01-28',
+    content: `
+      <h2>システム概要</h2>
+      <p>このシステムは、GitHub Pagesでの運用を想定した静的ナレッジベースです。Reactベースで構築されており、高速なページ遷移と美しい数式表示を実現しています。</p>
+      
+      <h3>主な機能</h3>
+      <ul>
+        <li>階層構造の自動生成</li>
+        <li>リアルタイム検索</li>
+        <li>LaTeX数式レンダリング</li>
+      </ul>
+    `
+  },
+  {
+    id: 'math-sample',
+    path: 'Science/Mathematics/Linear Algebra',
+    title: '固有値と固有ベクトル',
+    date: '2026-02-15',
+    content: `
+      <p>線形代数における固有値問題は、次の方程式で定義されます。</p>
+      
+      $$ A \\mathbf{x} = \\lambda \\mathbf{x} $$
+      
+      <p>ここで、$A$ は $n \\times n$ 行列、$\\mathbf{x}$ はゼロでないベクトル（固有ベクトル）、$\\lambda$ はスカラー（固有値）です。</p>
+      
+      <p>特性方程式 $\\det(A - \\lambda I) = 0$ を解くことで固有値を求めることができます。</p>
+    `
+  },
+  {
+    id: 'physics-sample',
+    path: 'Science/Physics/Quantum Mechanics',
+    title: 'シュレーディンガー方程式',
+    date: '2026-03-01',
+    content: `
+      <p>量子力学の基礎となるシュレーディンガー方程式は、時間依存型と非依存型があります。</p>
+      
+      <h3>時間依存シュレーディンガー方程式</h3>
+      $$ i \\hbar \\frac{\\partial}{\\partial t} \\Psi(\\mathbf{r}, t) = \\hat{H} \\Psi(\\mathbf{r}, t) $$
+      
+      <p>これは、量子系における波動関数 $\\Psi$ の時間発展を記述します。</p>
+    `
+  },
+  {
+    id: 'tech-design',
+    path: 'Engineering/Web/Design System',
+    title: 'Neon UI Principles',
+    date: '2026-04-10',
+    content: `
+      <p>近未来的なUIデザインには、以下の要素が不可欠です。</p>
+      <ul>
+        <li>高いコントラスト比</li>
+        <li>発光表現（Glow Effects）</li>
+        <li>半透明な背景（Glassmorphism）</li>
+        <li>等幅フォントの使用</li>
+      </ul>
+    `
+  }
+];
 
-        <main>
-            <!-- ローディングオーバーレイ -->
-            <div id="loading-overlay" class="hidden fixed inset-0 bg-white bg-opacity-75 z-50 flex items-center justify-center">
-                <div class="loader"></div>
-                <p class="ml-4 text-gray-600">データを読み込んでいます...</p>
-            </div>
+/**
+ * ==========================================
+ * ユーザー設定エリア：トップページ (Home Data)
+ * ==========================================
+ * トップページに表示するメッセージやコンテンツを設定します。
+ * HTMLタグが使用可能です。
+ */
+const homeConfig = {
+  title: "FUTURE_WIKI",
+  subtitle: "Knowledge Base System v2.0.26",
+  // ここにトップページの本文を記述します
+  description: `
+    <p class="text-lg mb-4">ようこそ、個人のナレッジベースへ。</p>
+    <p class="mb-2">ここは、日々の学習記録、技術メモ、そしてアイデアの断片を蓄積するための空間です。</p>
+    <p class="text-slate-400 text-sm">左上のメニューボタン、または検索バーから記事を探してみてください。</p>
+  `
+};
 
-            <!-- 設定セクション -->
-            <div class="bg-white p-3 sm:p-6 rounded-2xl shadow-md mb-8">
-                <div class="flex flex-col md:grid md:grid-cols-2 gap-y-6 md:gap-6">
-                    <div class="min-w-0">
-                        <label for="month-selector" class="block text-sm font-medium text-gray-600 mb-2">対象月を選択</label>
-                        <input type="month" id="month-selector" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-                    </div>
-                    <div class="min-w-0">
-                        <label for="budget-input" class="block text-sm font-medium text-gray-600 mb-2">今月の予算（円）</label>
-                        <input type="number" id="budget-input" placeholder="例: 50000" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" min="0">
-                    </div>
-                </div>
-            </div>
+/**
+ * ==========================================
+ * システムコンポーネント (System Components)
+ * ==========================================
+ */
 
-            <!-- サマリーセクション -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-                <div class="bg-blue-100 p-4 rounded-xl text-center">
-                    <h2 class="text-sm font-medium text-blue-800">予算</h2>
-                    <p id="summary-budget" class="text-2xl font-bold text-blue-900">¥0</p>
-                </div>
-                <div class="bg-yellow-100 p-4 rounded-xl text-center">
-                    <h2 class="text-sm font-medium text-yellow-800">合計収入</h2>
-                    <p id="summary-income" class="text-2xl font-bold text-yellow-900">¥0</p>
-                </div>
-                <div class="bg-red-100 p-4 rounded-xl text-center">
-                    <h2 class="text-sm font-medium text-red-800">合計支出</h2>
-                    <p id="summary-expense" class="text-2xl font-bold text-red-900">¥0</p>
-                </div>
-                <div class="bg-green-100 p-4 rounded-xl text-center">
-                    <h2 class="text-sm font-medium text-green-800">残金</h2>
-                    <p id="summary-remaining" class="text-2xl font-bold text-green-900">¥0</p>
-                </div>
-            </div>
+// KaTeXの読み込みとレンダリングを行うフック
+const useKaTeX = () => {
+  const [isLoaded, setIsLoaded] = useState(false);
 
-            <!-- 収支入力セクション -->
-            <div class="bg-white p-3 sm:p-6 rounded-2xl shadow-md mb-8">
-                <h2 class="text-xl font-bold mb-4 text-gray-700">収支の追加</h2>
-                <form id="transaction-form" class="flex flex-col sm:grid sm:grid-cols-2 md:grid-cols-5 gap-4 sm:items-end">
-                    <div class="min-w-0">
-                        <label for="transaction-date" class="block text-sm font-medium text-gray-600 mb-1">日付</label>
-                        <input type="date" id="transaction-date" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div class="min-w-0">
-                        <label class="block text-sm font-medium text-gray-600 mb-1">種類</label>
-                        <div class="flex items-center space-x-2 sm:space-x-4 border border-gray-300 rounded-lg p-2 h-10">
-                            <label class="flex items-center cursor-pointer text-sm">
-                                <input type="radio" name="transaction-type" value="expense" checked class="mr-1 focus:ring-blue-500">支出
-                            </label>
-                            <label class="flex items-center cursor-pointer text-sm">
-                                <input type="radio" name="transaction-type" value="income" class="mr-1 focus:ring-blue-500">収入
-                            </label>
-                        </div>
-                    </div>
-                    <div class="md:col-span-1 min-w-0">
-                        <label for="transaction-description" class="block text-sm font-medium text-gray-600 mb-1">用途</label>
-                        <input type="text" id="transaction-description" placeholder="例: 食費" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div class="min-w-0">
-                        <label for="transaction-amount" class="block text-sm font-medium text-gray-600 mb-1">金額（円）</label>
-                        <input type="number" id="transaction-amount" placeholder="例: 1500" min="0" step="1" pattern="\d*" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <button type="submit" class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-300 h-10">追加</button>
-                </form>
-            </div>
+  useEffect(() => {
+    // スタイルシートの注入
+    const link = document.createElement('link');
+    link.href = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css";
+    link.rel = "stylesheet";
+    link.integrity = "sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV";
+    link.crossOrigin = "anonymous";
+    document.head.appendChild(link);
 
-            <!-- 収支リストセクション -->
-            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-md">
-                <h2 class="text-xl font-bold mb-4 text-gray-700">収支リスト</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead>
-                            <tr class="border-b">
-                                <th class="p-3 text-sm font-semibold text-gray-600">日付</th>
-                                <th class="p-3 text-sm font-semibold text-gray-600">用途</th>
-                                <th class="p-3 text-sm font-semibold text-gray-600 text-right">金額</th>
-                                <th class="p-3 text-sm font-semibold text-gray-600 text-center">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="transaction-list">
-                            <!-- データはJavaScriptで挿入されます -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
-    </div>
+    // スクリプトの注入
+    const script = document.createElement('script');
+    script.src = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js";
+    script.integrity = "sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8";
+    script.crossOrigin = "anonymous";
+    script.onload = () => {
+      // Auto-render拡張機能の読み込み
+      const autoRenderScript = document.createElement('script');
+      autoRenderScript.src = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js";
+      autoRenderScript.integrity = "sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05";
+      autoRenderScript.crossOrigin = "anonymous";
+      autoRenderScript.onload = () => setIsLoaded(true);
+      document.head.appendChild(autoRenderScript);
+    };
+    document.head.appendChild(script);
 
-    <!-- 設定モーダル -->
-    <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4">
-        <div id="settings-modal-content" class="bg-white w-full max-w-md p-6 rounded-2xl shadow-xl relative transform transition-all duration-200 scale-95 opacity-0">
-            <button id="close-settings-button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" aria-label="設定を閉じる">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-            
-            <h2 class="text-xl font-bold mb-4 text-gray-700">共有設定</h2>
-            <div class="space-y-4">
-                <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                    <span class="text-sm font-medium text-gray-600">あなたの共有ID:</span>
-                    <div class="flex items-center gap-2">
-                       <span id="user-id-display" class="text-sm font-mono bg-gray-200 px-2 py-1 rounded">読み込み中...</span>
-                       <button id="copy-id-button" class="bg-blue-500 text-white text-xs font-bold py-1 px-3 rounded-lg hover:bg-blue-600 transition">コピー</button>
-                    </div>
-                </div>
-                 <div class="text-xs text-gray-500">
-                    <p>この家計簿を他の人と共有するには、上記のIDをコピーして相手に伝えてください。</p>
-                </div>
-            </div>
-             <div class="mt-4 pt-4 border-t">
-                 <label for="connect-id-input" class="block text-sm font-medium text-gray-600 mb-2">他の人の家計簿に接続する</label>
-                <div class="flex gap-2">
-                    <input type="text" id="connect-id-input" placeholder="共有IDを貼り付け" class="flex-grow w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    <button id="connect-button" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition">接続</button>
-                </div>
-                <div class="mt-2">
-                    <p class="text-sm text-gray-600">現在接続中のID: <span id="current-host-id" class="font-mono font-bold"></span></p>
-                </div>
-            </div>
+    return () => {
+      // クリーンアップ（簡易的）
+      try {
+        document.head.removeChild(link);
+        document.head.removeChild(script);
+      } catch (e) {
+        // console.error(e);
+      }
+    };
+  }, []);
+
+  return isLoaded;
+};
+
+// 数式を含むコンテンツを表示するコンポーネント
+const LatexContent = ({ content }) => {
+  const isKaTeXLoaded = useKaTeX();
+  const containerRef = React.useRef(null);
+
+  useEffect(() => {
+    if (isKaTeXLoaded && containerRef.current && window.renderMathInElement) {
+      window.renderMathInElement(containerRef.current, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$', right: '$', display: false },
+        ],
+        throwOnError: false
+      });
+    }
+  }, [content, isKaTeXLoaded]);
+
+  return (
+    <div 
+      ref={containerRef}
+      className="prose prose-invert prose-p:text-slate-300 prose-headings:text-cyan-400 prose-strong:text-cyan-200 max-w-none font-sans break-words"
+      dangerouslySetInnerHTML={{ __html: content }}
+    />
+  );
+};
+
+// ディレクトリツリーを生成するヘルパー関数
+const buildDirectoryTree = (articles) => {
+  const root = {};
+
+  articles.forEach(article => {
+    const parts = article.path.split('/');
+    let current = root;
+
+    parts.forEach((part, index) => {
+      if (!current[part]) {
+        current[part] = {
+          name: part,
+          type: index === parts.length - 1 ? 'file' : 'folder',
+          children: {},
+          articleId: index === parts.length - 1 ? article.id : null
+        };
+      }
+      current = current[part].children;
+    });
+  });
+
+  return root;
+};
+
+// 再帰的にツリーを表示するコンポーネント
+const FileTree = ({ node, level = 0, onSelect, currentArticleId }) => {
+  const [isOpen, setIsOpen] = useState(true); // デフォルトで展開
+  const isFile = node.type === 'file';
+  const paddingLeft = `${level * 16}px`;
+
+  if (isFile) {
+    const isActive = node.articleId === currentArticleId;
+    return (
+      <div 
+        onClick={() => onSelect(node.articleId)}
+        className={`
+          flex items-center gap-2 py-3 md:py-1.5 px-2 cursor-pointer transition-colors duration-200
+          hover:bg-cyan-900/30 text-sm group
+          ${isActive ? 'bg-cyan-900/50 text-cyan-300 border-r-2 border-cyan-400' : 'text-slate-400'}
+        `}
+        style={{ paddingLeft: `calc(${paddingLeft} + 8px)` }}
+      >
+        <FileText size={16} className={isActive ? 'text-cyan-400' : 'text-slate-500 group-hover:text-cyan-400'} />
+        <span className="truncate">{node.name}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 py-3 md:py-1.5 px-2 cursor-pointer hover:bg-slate-800/50 text-slate-300 text-sm font-semibold select-none"
+        style={{ paddingLeft }}
+      >
+        {isOpen ? <ChevronDown size={16} className="text-pink-500" /> : <ChevronRight size={16} className="text-slate-500" />}
+        <Folder size={16} className="text-pink-500/80" />
+        <span className="truncate">{node.name}</span>
+      </div>
+      {isOpen && (
+        <div className="border-l border-slate-700/50 ml-3">
+          {Object.values(node.children).map((child) => (
+            <FileTree 
+              key={child.name} 
+              node={child} 
+              level={level + 1} 
+              onSelect={onSelect}
+              currentArticleId={currentArticleId}
+            />
+          ))}
         </div>
+      )}
     </div>
+  );
+};
 
-
-    <script type="module">
-        // Firebase SDKのインポート
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // UI要素の取得
-        const monthSelector = document.getElementById('month-selector');
-        const budgetInput = document.getElementById('budget-input');
-        const transactionForm = document.getElementById('transaction-form');
-        const transactionDateInput = document.getElementById('transaction-date');
-        const transactionDescriptionInput = document.getElementById('transaction-description');
-        const transactionAmountInput = document.getElementById('transaction-amount');
-        const transactionList = document.getElementById('transaction-list');
-        const summaryBudget = document.getElementById('summary-budget');
-        const summaryIncome = document.getElementById('summary-income');
-        const summaryExpense = document.getElementById('summary-expense');
-        const summaryRemaining = document.getElementById('summary-remaining');
-        const userIdDisplay = document.getElementById('user-id-display');
-        const copyIdButton = document.getElementById('copy-id-button');
-        const connectIdInput = document.getElementById('connect-id-input');
-        const connectButton = document.getElementById('connect-button');
-        const currentHostId = document.getElementById('current-host-id');
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const settingsButton = document.getElementById('settings-button');
-        const settingsModal = document.getElementById('settings-modal');
-        const settingsModalContent = document.getElementById('settings-modal-content');
-        const closeSettingsButton = document.getElementById('close-settings-button');
-
-        // Firebase関連の変数
-        let db, auth, currentUser, hostId;
-        let unsubscribe; // onSnapshotのリスナーを解除するための変数
+// トップページのダッシュボード
+const Dashboard = ({ stats, onRandom }) => {
+  return (
+    <div className="animate-fadeIn p-4 md:p-6">
+      <div className="mb-12 text-center pt-8 md:pt-0">
+        <h1 className="text-4xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 mb-4 tracking-tight break-all" style={{fontFamily: 'monospace'}}>
+          {homeConfig.title}
+        </h1>
+        <p className="text-slate-400 text-sm md:text-lg mb-8">{homeConfig.subtitle}</p>
         
-        // --- 初期化処理 ---
-        async function initialize() {
-            setupDate();
-            initializeFirebase();
-            addEventListeners();
-        }
+        {/* ユーザー設定のウェルカムメッセージを表示 */}
+        <div 
+          className="max-w-2xl mx-auto bg-slate-800/30 border border-slate-700/50 rounded-xl p-6 text-slate-300 leading-relaxed text-left md:text-center"
+          dangerouslySetInnerHTML={{ __html: homeConfig.description }}
+        />
+      </div>
 
-        function setupDate() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = (today.getMonth() + 1).toString().padStart(2, '0');
-            monthSelector.value = `${year}-${month}`;
-            transactionDateInput.valueAsDate = today;
-            updateDateInputRange();
-        }
-
-        async function initializeFirebase() {
-            try {
-                // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
-                // 【重要】ステップ1でコピーした、あなた自身のFirebase接続情報をここに貼り付けてください
-                // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
-                const firebaseConfig = {
-                    apiKey: "AIzaSyBKBlU5uXbM9zpWcYHV7f-pP3yRA05TOVU",
-                    authDomain: "kakeibo-96344.firebaseapp.com",
-                    projectId: "kakeibo-96344",
-                    storageBucket: "kakeibo-96344.appspot.com",
-                    messagingSenderId: "211705377735",
-                    appId: "1:211705377735:web:4158c4f9ae001f12c61fe2",
-                    measurementId: "G-GBCB94Z35F"
-                };
-                // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-
-                if (firebaseConfig.apiKey === "YOUR_API_KEY") {
-                    throw new Error('Firebaseの接続情報が設定されていません。コード内の指示に従って、ご自身のFirebaseプロジェクトの設定情報を貼り付けてください。');
-                }
-
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        currentUser = user;
-                        userIdDisplay.textContent = currentUser.uid;
-                        
-                        const savedHostId = localStorage.getItem('kakeiboHostId');
-                        hostId = savedHostId || currentUser.uid;
-                        
-                        connectToKakeibo(hostId);
-
-                    } else {
-                        // ユーザーがいない場合、匿名認証を行う
-                        await signInAnonymously(auth);
-                    }
-                });
-            } catch (error) {
-                console.error("Firebaseの初期化に失敗しました:", error);
-                alert("データベースへの接続に失敗しました。\n\n詳細: " + error.message + "\n\nページを再読み込みするか、開発者コンソールを確認してください。");
-            }
-        }
-
-        // --- イベントリスナー ---
-        function addEventListeners() {
-            monthSelector.addEventListener('change', () => {
-                updateDateInputRange();
-                connectToKakeibo(hostId);
-            });
-            budgetInput.addEventListener('change', handleBudgetChange);
-            transactionForm.addEventListener('submit', addTransaction);
-            copyIdButton.addEventListener('click', copyUserId);
-            connectButton.addEventListener('click', handleConnect);
-            settingsButton.addEventListener('click', openSettingsModal);
-            closeSettingsButton.addEventListener('click', closeSettingsModal);
-            settingsModal.addEventListener('click', (e) => {
-                if (e.target === settingsModal) {
-                    closeSettingsModal();
-                }
-            });
-        }
-
-        // --- データ連携 & UI更新 ---
-        function connectToKakeibo(newHostId) {
-            hostId = newHostId;
-            localStorage.setItem('kakeiboHostId', hostId);
-            currentHostId.textContent = hostId;
-            connectIdInput.value = '';
-            
-            loadData();
-        }
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-12">
+        <div className="bg-slate-800/40 border border-slate-700 p-6 rounded-lg backdrop-blur-sm hover:border-cyan-500/50 transition-colors group">
+          <div className="flex items-center gap-4 mb-3">
+            <div className="p-3 rounded-full bg-cyan-900/30 group-hover:bg-cyan-900/50 transition-colors">
+              <Atom className="text-cyan-400" size={24} />
+            </div>
+            <div className="text-2xl font-bold text-slate-200">{stats.totalArticles}</div>
+          </div>
+          <div className="text-slate-400 text-sm uppercase tracking-wider">Total Articles</div>
+        </div>
         
-        function loadData() {
-            loadingOverlay.classList.remove('hidden');
+        <div className="bg-slate-800/40 border border-slate-700 p-6 rounded-lg backdrop-blur-sm hover:border-pink-500/50 transition-colors group">
+          <div className="flex items-center gap-4 mb-3">
+            <div className="p-3 rounded-full bg-pink-900/30 group-hover:bg-pink-900/50 transition-colors">
+              <Cpu className="text-pink-400" size={24} />
+            </div>
+            <div className="text-2xl font-bold text-slate-200">{stats.categories}</div>
+          </div>
+          <div className="text-slate-400 text-sm uppercase tracking-wider">Categories</div>
+        </div>
 
-            if (unsubscribe) {
-                unsubscribe();
-            }
+        <div 
+          onClick={onRandom}
+          className="bg-slate-800/40 border border-slate-700 p-6 rounded-lg backdrop-blur-sm hover:border-green-500/50 transition-colors cursor-pointer group relative overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+          <div className="flex items-center gap-4 mb-3">
+            <div className="p-3 rounded-full bg-green-900/30 group-hover:bg-green-900/50 transition-colors">
+              <Search className="text-green-400" size={24} />
+            </div>
+            <div className="text-lg font-bold text-slate-200">Discover</div>
+          </div>
+          <div className="text-slate-400 text-sm uppercase tracking-wider">Random Article</div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
-            const selectedMonth = monthSelector.value;
-            if (!currentUser || !hostId || !selectedMonth) {
-                loadingOverlay.classList.add('hidden');
-                return;
-            };
+export default function App() {
+  const [activeArticleId, setActiveArticleId] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // 画面サイズに応じて初期状態を設定
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+    
+    // 初期実行
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // 記事データの処理
+  const tree = useMemo(() => buildDirectoryTree(articles), []);
+  
+  // 検索フィルタリング
+  const filteredArticles = useMemo(() => {
+    if (!searchQuery) return [];
+    return articles.filter(a => 
+      a.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      a.content.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery]);
+
+  const activeArticle = useMemo(() => 
+    articles.find(a => a.id === activeArticleId), 
+  [activeArticleId]);
+
+  const stats = useMemo(() => {
+    const categories = new Set(articles.map(a => a.path.split('/')[0]));
+    return {
+      totalArticles: articles.length,
+      categories: categories.size
+    };
+  }, []);
+
+  const handleRandom = () => {
+    const random = articles[Math.floor(Math.random() * articles.length)];
+    setActiveArticleId(random.id);
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-slate-200 font-sans selection:bg-cyan-500/30 selection:text-cyan-100 overflow-hidden flex flex-col">
+      {/* Background Effects */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(18,18,23,0)_2px,transparent_2px),linear-gradient(90deg,rgba(18,18,23,0)_2px,transparent_2px)] bg-[size:40px_40px] [background-position:center] opacity-20 border-slate-700/20"></div>
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-pink-500/50 to-transparent"></div>
+        <div className="absolute inset-0 bg-slate-900/80"></div>
+      </div>
+
+      {/* Header */}
+      <header className="relative z-30 h-16 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md flex items-center justify-between px-4 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.5)]">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 hover:bg-slate-800 rounded-md text-cyan-400 transition-colors z-50"
+          >
+            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+          <div 
+            onClick={() => {
+              setActiveArticleId(null);
+              if (window.innerWidth < 768) setSidebarOpen(false);
+            }}
+            className="flex items-center gap-2 cursor-pointer group"
+          >
+            <Terminal size={20} className="text-pink-500 group-hover:text-pink-400 transition-colors" />
+            <span className="font-bold tracking-wider text-lg hidden sm:block font-mono group-hover:text-white transition-colors">
+              F_WIKI<span className="animate-pulse text-cyan-400">_</span>
+            </span>
+          </div>
+        </div>
+
+        <div className="flex-1 max-w-md mx-4">
+          <div className="relative group">
+            <input
+              type="text"
+              placeholder="Search..."
+              className="w-full bg-slate-800/50 border border-slate-700 rounded-full py-1.5 pl-10 pr-4 text-sm focus:outline-none focus:border-cyan-500/50 focus:bg-slate-800 transition-all text-slate-200 placeholder-slate-500"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
             
-            // データベースのパスを公開用に変更
-            const docRef = doc(db, "kakeibo", hostId);
+            {/* Search Dropdown */}
+            {searchQuery && (
+              <div className="absolute top-full mt-2 left-0 right-0 bg-slate-900 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto z-50">
+                {filteredArticles.length > 0 ? (
+                  filteredArticles.map(article => (
+                    <div 
+                      key={article.id}
+                      onClick={() => {
+                        setActiveArticleId(article.id);
+                        setSearchQuery('');
+                        if (window.innerWidth < 768) setSidebarOpen(false);
+                      }}
+                      className="px-4 py-3 hover:bg-slate-800 cursor-pointer border-b border-slate-800/50 last:border-0"
+                    >
+                      <div className="text-cyan-400 text-sm font-semibold">{article.title}</div>
+                      <div className="text-slate-500 text-xs truncate">{article.path}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-4 text-center text-slate-500 text-sm">No results found</div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
-            unsubscribe = onSnapshot(docRef, (docSnap) => {
-                const allData = docSnap.data() || {};
-                const monthData = allData[selectedMonth] || { budget: 0, transactions: [] };
-                render(monthData);
-                loadingOverlay.classList.add('hidden');
-            }, (error) => {
-                console.error("データの取得に失敗しました:", error);
-                alert("データの読み込み中にエラーが発生しました。");
-                loadingOverlay.classList.add('hidden');
-            });
-        }
+        <div className="flex items-center gap-2 text-xs text-slate-500 font-mono hidden sm:block">
+          SYS: ONLINE
+          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex overflow-hidden relative z-10">
         
-        function render(data) {
-            budgetInput.value = data.budget || '';
+        {/* Mobile Overlay */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 md:hidden animate-fadeIn"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
 
-            const transactions = data.transactions || [];
-            const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-            const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-            const remaining = (data.budget || 0) + totalIncome - totalExpense;
+        {/* Sidebar */}
+        <aside 
+          className={`
+            fixed md:relative z-30 top-16 md:top-0 bottom-0 w-[80%] max-w-sm md:w-72 
+            bg-slate-900 md:bg-slate-900/50 border-r border-slate-800 backdrop-blur-md
+            transition-all duration-300 ease-in-out transform shadow-2xl md:shadow-none
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:w-0 md:border-r-0 md:translate-x-0 overflow-hidden'}
+          `}
+        >
+          <div className="h-full overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 font-mono">
+              / Root Directory
+            </div>
+            {Object.values(tree).map((node) => (
+              <FileTree 
+                key={node.name} 
+                node={node} 
+                onSelect={(id) => {
+                  setActiveArticleId(id);
+                  if (window.innerWidth < 768) setSidebarOpen(false);
+                }} 
+                currentArticleId={activeArticleId}
+              />
+            ))}
+          </div>
+        </aside>
 
-            summaryBudget.textContent = `¥${(data.budget || 0).toLocaleString()}`;
-            summaryIncome.textContent = `¥${totalIncome.toLocaleString()}`;
-            summaryExpense.textContent = `¥${totalExpense.toLocaleString()}`;
-            summaryRemaining.textContent = `¥${remaining.toLocaleString()}`;
-            
-            transactionList.innerHTML = '';
-            if (transactions.length === 0) {
-                transactionList.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500 p-4">まだ収支はありません。</td></tr>`;
-            } else {
-                transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(t => {
-                    const tr = document.createElement('tr');
-                    tr.className = 'border-b hover:bg-gray-50';
-                    const amountColor = t.type === 'income' ? 'text-green-600' : 'text-red-600';
-                    const amountPrefix = t.type === 'income' ? '+ ' : '';
-                    tr.innerHTML = `
-                        <td class="p-3">${t.date}</td>
-                        <td class="p-3">${escapeHTML(t.description)}</td>
-                        <td class="p-3 text-right font-medium ${amountColor}">${amountPrefix}¥${t.amount.toLocaleString()}</td>
-                        <td class="p-3 text-center">
-                            <button class="text-red-500 hover:text-red-700 font-medium" data-id="${t.id}">削除</button>
-                        </td>`;
-                    tr.querySelector('button').addEventListener('click', () => deleteTransaction(t));
-                    transactionList.appendChild(tr);
-                });
-            }
-        }
+        {/* Article View */}
+        <main className="flex-1 overflow-y-auto relative scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent w-full">
+          <div className="max-w-4xl mx-auto p-4 md:p-12 min-h-full pb-24">
+            {!activeArticle ? (
+              <Dashboard stats={stats} onRandom={handleRandom} />
+            ) : (
+              <div className="animate-fadeIn">
+                {/* Breadcrumb */}
+                <div className="flex flex-wrap items-center gap-2 text-xs text-cyan-500/70 font-mono mb-6">
+                  <Home size={12} className="cursor-pointer hover:text-cyan-400" onClick={() => setActiveArticleId(null)} />
+                  {activeArticle.path.split('/').map((part, i) => (
+                    <React.Fragment key={i}>
+                      <span>/</span>
+                      <span className={i === activeArticle.path.split('/').length - 1 ? 'text-cyan-300' : ''}>{part}</span>
+                    </React.Fragment>
+                  ))}
+                </div>
 
-        // --- データ操作 ---
-        async function handleBudgetChange() {
-            const newBudget = parseInt(budgetInput.value, 10);
-            if (isNaN(newBudget) || newBudget < 0) return;
-            
-            const selectedMonth = monthSelector.value;
-            const docRef = doc(db, "kakeibo", hostId);
+                {/* Article Header */}
+                <header className="mb-8 border-b border-slate-800 pb-8">
+                  <h1 className="text-2xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400 mb-4 leading-tight">
+                    {activeArticle.title}
+                  </h1>
+                  <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 text-xs md:text-sm text-slate-500 font-mono">
+                    <span className="flex items-center gap-1">
+                      <Terminal size={14} /> ID: {activeArticle.id}
+                    </span>
+                    <span className="hidden md:inline w-px h-4 bg-slate-700"></span>
+                    <span>UPDATED: {activeArticle.date}</span>
+                  </div>
+                </header>
 
-            try {
-                await setDoc(docRef, { [selectedMonth]: { budget: newBudget } }, { merge: true });
-            } catch (error) {
-                console.error("予算の更新に失敗しました:", error);
-                alert("予算の更新に失敗しました。");
-            }
-        }
-
-        async function addTransaction(e) {
-            e.preventDefault();
-            const type = transactionForm.querySelector('input[name="transaction-type"]:checked').value;
-            const date = transactionDateInput.value;
-            const description = transactionDescriptionInput.value.trim();
-            const amountValue = transactionAmountInput.value;
-            
-            if (!date || description === '' || !/^\d+$/.test(amountValue)) {
-                alert('日付と用途を入力し、金額には0以上の整数を入力してください。');
-                return;
-            }
-            const amount = parseInt(amountValue, 10);
-            if (amount === 0) return;
-
-            const newTransaction = { id: Date.now(), type, date, description, amount };
-            const selectedMonth = monthSelector.value;
-            const docRef = doc(db, "kakeibo", hostId);
-
-            try {
-                await setDoc(docRef, { [selectedMonth]: { transactions: arrayUnion(newTransaction) } }, { merge: true });
-                
-                transactionDescriptionInput.value = '';
-                transactionAmountInput.value = '';
-                transactionDescriptionInput.focus();
-            } catch (error) {
-                console.error("収支の追加に失敗しました:", error);
-                alert("収支の追加に失敗しました。");
-            }
-        }
-
-        async function deleteTransaction(transactionToDelete) {
-            const selectedMonth = monthSelector.value;
-            const docRef = doc(db, "kakeibo", hostId);
-            try {
-                await updateDoc(docRef, { [`${selectedMonth}.transactions`]: arrayRemove(transactionToDelete) });
-            } catch (error) {
-                console.error("収支の削除に失敗しました:", error);
-                alert("収支の削除に失敗しました。");
-            }
-        }
-
-        // --- ヘルパー関数 ---
-        function updateDateInputRange() {
-            const selectedMonth = monthSelector.value;
-            if (!selectedMonth) return;
-
-            const [year, month] = selectedMonth.split('-').map(Number);
-            
-            const firstDay = `${selectedMonth}-01`;
-            
-            // 月の最終日を取得 (例: 2025年10月 -> new Date(2025, 10, 0) -> 10月31日)
-            const lastDay = new Date(year, month, 0).getDate();
-            const lastDayStr = String(lastDay).padStart(2, '0');
-            const lastDate = `${selectedMonth}-${lastDayStr}`;
-
-            transactionDateInput.min = firstDay;
-            transactionDateInput.max = lastDate;
-
-            // 現在の日付が範囲外なら修正
-            if (transactionDateInput.value < firstDay || transactionDateInput.value > lastDate) {
-                transactionDateInput.value = firstDay;
-            }
-        }
-
-        function openSettingsModal() {
-            settingsModal.classList.remove('hidden');
-            setTimeout(() => {
-                settingsModalContent.classList.remove('scale-95', 'opacity-0');
-                settingsModalContent.classList.add('scale-100', 'opacity-100');
-            }, 10);
-        }
-
-        function closeSettingsModal() {
-            settingsModalContent.classList.remove('scale-100', 'opacity-100');
-            settingsModalContent.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                settingsModal.classList.add('hidden');
-            }, 200);
-        }
-
-        function copyUserId() {
-            if (navigator.clipboard && currentUser) {
-                navigator.clipboard.writeText(currentUser.uid).then(() => {
-                    alert('共有IDをクリップボードにコピーしました。');
-                });
-            } else {
-                alert('コピーに失敗しました。');
-            }
-        }
-
-        function handleConnect() {
-            const newHostId = connectIdInput.value.trim();
-            if (newHostId && newHostId !== hostId) {
-                connectToKakeibo(newHostId);
-                closeSettingsModal();
-            } else if (!newHostId) {
-                connectToKakeibo(currentUser.uid);
-            }
-        }
-
-        function escapeHTML(str) {
-            const p = document.createElement('p');
-            p.textContent = str;
-            return p.innerHTML;
-        }
-
-        initialize();
-    </script>
-</body>
-</html>
-
+                {/* Content */}
+                <div className="bg-slate-800/20 rounded-lg border border-slate-800 p-4 md:p-8 shadow-inner relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-2 opacity-10 pointer-events-none">
+                    <Atom size={100} />
+                  </div>
+                  <LatexContent content={activeArticle.content} />
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Footer */}
+          <footer className="absolute bottom-0 left-0 right-0 p-4 text-center text-[10px] md:text-xs text-slate-600 font-mono border-t border-slate-800/50 bg-slate-900/80 backdrop-blur">
+            FUTURE_WIKI SYSTEM &copy; 2026 // RENDERED IN {new Date().getFullYear()}
+          </footer>
+        </main>
+      </div>
+    </div>
+  );
+}
