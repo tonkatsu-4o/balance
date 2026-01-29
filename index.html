@@ -1,519 +1,530 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Terminal, Folder, FileText, ChevronRight, ChevronDown, Home, Atom, Cpu, Search, Menu, X } from 'lucide-react';
-
-/**
- * ==========================================
- * ユーザー設定エリア：記事データ (Article Data)
- * ==========================================
- * ここに記事を追加していくことで、自動的にサイドバーの階層が生成されます。
- * content内ではLaTeX形式 ($...$ または $$...$$) が使用可能です。
- */
-const articles = [
-  {
-    id: 'intro',
-    path: 'General/Introduction',
-    title: 'Welcome to FutureWiki',
-    date: '2026-01-28',
-    content: `
-      <h2>システム概要</h2>
-      <p>このシステムは、GitHub Pagesでの運用を想定した静的ナレッジベースです。Reactベースで構築されており、高速なページ遷移と美しい数式表示を実現しています。</p>
-      
-      <h3>主な機能</h3>
-      <ul>
-        <li>階層構造の自動生成</li>
-        <li>リアルタイム検索</li>
-        <li>LaTeX数式レンダリング</li>
-      </ul>
-    `
-  },
-  {
-    id: 'math-sample',
-    path: 'Science/Mathematics/Linear Algebra',
-    title: '固有値と固有ベクトル',
-    date: '2026-02-15',
-    content: `
-      <p>線形代数における固有値問題は、次の方程式で定義されます。</p>
-      
-      $$ A \\mathbf{x} = \\lambda \\mathbf{x} $$
-      
-      <p>ここで、$A$ は $n \\times n$ 行列、$\\mathbf{x}$ はゼロでないベクトル（固有ベクトル）、$\\lambda$ はスカラー（固有値）です。</p>
-      
-      <p>特性方程式 $\\det(A - \\lambda I) = 0$ を解くことで固有値を求めることができます。</p>
-    `
-  },
-  {
-    id: 'physics-sample',
-    path: 'Science/Physics/Quantum Mechanics',
-    title: 'シュレーディンガー方程式',
-    date: '2026-03-01',
-    content: `
-      <p>量子力学の基礎となるシュレーディンガー方程式は、時間依存型と非依存型があります。</p>
-      
-      <h3>時間依存シュレーディンガー方程式</h3>
-      $$ i \\hbar \\frac{\\partial}{\\partial t} \\Psi(\\mathbf{r}, t) = \\hat{H} \\Psi(\\mathbf{r}, t) $$
-      
-      <p>これは、量子系における波動関数 $\\Psi$ の時間発展を記述します。</p>
-    `
-  },
-  {
-    id: 'tech-design',
-    path: 'Engineering/Web/Design System',
-    title: 'Neon UI Principles',
-    date: '2026-04-10',
-    content: `
-      <p>近未来的なUIデザインには、以下の要素が不可欠です。</p>
-      <ul>
-        <li>高いコントラスト比</li>
-        <li>発光表現（Glow Effects）</li>
-        <li>半透明な背景（Glassmorphism）</li>
-        <li>等幅フォントの使用</li>
-      </ul>
-    `
-  }
-];
-
-/**
- * ==========================================
- * ユーザー設定エリア：トップページ (Home Data)
- * ==========================================
- * トップページに表示するメッセージやコンテンツを設定します。
- * HTMLタグが使用可能です。
- */
-const homeConfig = {
-  title: "FUTURE_WIKI",
-  subtitle: "Knowledge Base System v2.0.26",
-  // ここにトップページの本文を記述します
-  description: `
-    <p class="text-lg mb-4">ようこそ、個人のナレッジベースへ。</p>
-    <p class="mb-2">ここは、日々の学習記録、技術メモ、そしてアイデアの断片を蓄積するための空間です。</p>
-    <p class="text-slate-400 text-sm">左上のメニューボタン、または検索バーから記事を探してみてください。</p>
-  `
-};
-
-/**
- * ==========================================
- * システムコンポーネント (System Components)
- * ==========================================
- */
-
-// KaTeXの読み込みとレンダリングを行うフック
-const useKaTeX = () => {
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    // スタイルシートの注入
-    const link = document.createElement('link');
-    link.href = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css";
-    link.rel = "stylesheet";
-    link.integrity = "sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV";
-    link.crossOrigin = "anonymous";
-    document.head.appendChild(link);
-
-    // スクリプトの注入
-    const script = document.createElement('script');
-    script.src = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js";
-    script.integrity = "sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8";
-    script.crossOrigin = "anonymous";
-    script.onload = () => {
-      // Auto-render拡張機能の読み込み
-      const autoRenderScript = document.createElement('script');
-      autoRenderScript.src = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js";
-      autoRenderScript.integrity = "sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05";
-      autoRenderScript.crossOrigin = "anonymous";
-      autoRenderScript.onload = () => setIsLoaded(true);
-      document.head.appendChild(autoRenderScript);
-    };
-    document.head.appendChild(script);
-
-    return () => {
-      // クリーンアップ（簡易的）
-      try {
-        document.head.removeChild(link);
-        document.head.removeChild(script);
-      } catch (e) {
-        // console.error(e);
-      }
-    };
-  }, []);
-
-  return isLoaded;
-};
-
-// 数式を含むコンテンツを表示するコンポーネント
-const LatexContent = ({ content }) => {
-  const isKaTeXLoaded = useKaTeX();
-  const containerRef = React.useRef(null);
-
-  useEffect(() => {
-    if (isKaTeXLoaded && containerRef.current && window.renderMathInElement) {
-      window.renderMathInElement(containerRef.current, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false },
-        ],
-        throwOnError: false
-      });
-    }
-  }, [content, isKaTeXLoaded]);
-
-  return (
-    <div 
-      ref={containerRef}
-      className="prose prose-invert prose-p:text-slate-300 prose-headings:text-cyan-400 prose-strong:text-cyan-200 max-w-none font-sans break-words"
-      dangerouslySetInnerHTML={{ __html: content }}
-    />
-  );
-};
-
-// ディレクトリツリーを生成するヘルパー関数
-const buildDirectoryTree = (articles) => {
-  const root = {};
-
-  articles.forEach(article => {
-    const parts = article.path.split('/');
-    let current = root;
-
-    parts.forEach((part, index) => {
-      if (!current[part]) {
-        current[part] = {
-          name: part,
-          type: index === parts.length - 1 ? 'file' : 'folder',
-          children: {},
-          articleId: index === parts.length - 1 ? article.id : null
-        };
-      }
-      current = current[part].children;
-    });
-  });
-
-  return root;
-};
-
-// 再帰的にツリーを表示するコンポーネント
-const FileTree = ({ node, level = 0, onSelect, currentArticleId }) => {
-  const [isOpen, setIsOpen] = useState(true); // デフォルトで展開
-  const isFile = node.type === 'file';
-  const paddingLeft = `${level * 16}px`;
-
-  if (isFile) {
-    const isActive = node.articleId === currentArticleId;
-    return (
-      <div 
-        onClick={() => onSelect(node.articleId)}
-        className={`
-          flex items-center gap-2 py-3 md:py-1.5 px-2 cursor-pointer transition-colors duration-200
-          hover:bg-cyan-900/30 text-sm group
-          ${isActive ? 'bg-cyan-900/50 text-cyan-300 border-r-2 border-cyan-400' : 'text-slate-400'}
-        `}
-        style={{ paddingLeft: `calc(${paddingLeft} + 8px)` }}
-      >
-        <FileText size={16} className={isActive ? 'text-cyan-400' : 'text-slate-500 group-hover:text-cyan-400'} />
-        <span className="truncate">{node.name}</span>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div 
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 py-3 md:py-1.5 px-2 cursor-pointer hover:bg-slate-800/50 text-slate-300 text-sm font-semibold select-none"
-        style={{ paddingLeft }}
-      >
-        {isOpen ? <ChevronDown size={16} className="text-pink-500" /> : <ChevronRight size={16} className="text-slate-500" />}
-        <Folder size={16} className="text-pink-500/80" />
-        <span className="truncate">{node.name}</span>
-      </div>
-      {isOpen && (
-        <div className="border-l border-slate-700/50 ml-3">
-          {Object.values(node.children).map((child) => (
-            <FileTree 
-              key={child.name} 
-              node={child} 
-              level={level + 1} 
-              onSelect={onSelect}
-              currentArticleId={currentArticleId}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// トップページのダッシュボード
-const Dashboard = ({ stats, onRandom }) => {
-  return (
-    <div className="animate-fadeIn p-4 md:p-6">
-      <div className="mb-12 text-center pt-8 md:pt-0">
-        <h1 className="text-4xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 mb-4 tracking-tight break-all" style={{fontFamily: 'monospace'}}>
-          {homeConfig.title}
-        </h1>
-        <p className="text-slate-400 text-sm md:text-lg mb-8">{homeConfig.subtitle}</p>
-        
-        {/* ユーザー設定のウェルカムメッセージを表示 */}
-        <div 
-          className="max-w-2xl mx-auto bg-slate-800/30 border border-slate-700/50 rounded-xl p-6 text-slate-300 leading-relaxed text-left md:text-center"
-          dangerouslySetInnerHTML={{ __html: homeConfig.description }}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-12">
-        <div className="bg-slate-800/40 border border-slate-700 p-6 rounded-lg backdrop-blur-sm hover:border-cyan-500/50 transition-colors group">
-          <div className="flex items-center gap-4 mb-3">
-            <div className="p-3 rounded-full bg-cyan-900/30 group-hover:bg-cyan-900/50 transition-colors">
-              <Atom className="text-cyan-400" size={24} />
-            </div>
-            <div className="text-2xl font-bold text-slate-200">{stats.totalArticles}</div>
-          </div>
-          <div className="text-slate-400 text-sm uppercase tracking-wider">Total Articles</div>
-        </div>
-        
-        <div className="bg-slate-800/40 border border-slate-700 p-6 rounded-lg backdrop-blur-sm hover:border-pink-500/50 transition-colors group">
-          <div className="flex items-center gap-4 mb-3">
-            <div className="p-3 rounded-full bg-pink-900/30 group-hover:bg-pink-900/50 transition-colors">
-              <Cpu className="text-pink-400" size={24} />
-            </div>
-            <div className="text-2xl font-bold text-slate-200">{stats.categories}</div>
-          </div>
-          <div className="text-slate-400 text-sm uppercase tracking-wider">Categories</div>
-        </div>
-
-        <div 
-          onClick={onRandom}
-          className="bg-slate-800/40 border border-slate-700 p-6 rounded-lg backdrop-blur-sm hover:border-green-500/50 transition-colors cursor-pointer group relative overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-          <div className="flex items-center gap-4 mb-3">
-            <div className="p-3 rounded-full bg-green-900/30 group-hover:bg-green-900/50 transition-colors">
-              <Search className="text-green-400" size={24} />
-            </div>
-            <div className="text-lg font-bold text-slate-200">Discover</div>
-          </div>
-          <div className="text-slate-400 text-sm uppercase tracking-wider">Random Article</div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default function App() {
-  const [activeArticleId, setActiveArticleId] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // 画面サイズに応じて初期状態を設定
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
-      }
-    };
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO-WIKI | TeX Archive</title>
     
-    // 初期実行
-    if (window.innerWidth < 768) {
-      setSidebarOpen(false);
-    }
+    <!-- Tailwind CSS (Design) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            black: '#0a0a0c',
+                            dark: '#13141f',
+                            panel: '#1c1e2e',
+                            primary: '#00f0ff', // Cyan
+                            secondary: '#7000ff', // Purple
+                            text: '#e0e6ed',
+                            dim: '#94a3b8'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['"Fira Code"', 'Consolas', 'Monaco', 'monospace'],
+                        sans: ['"Inter"', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // 記事データの処理
-  const tree = useMemo(() => buildDirectoryTree(articles), []);
-  
-  // 検索フィルタリング
-  const filteredArticles = useMemo(() => {
-    if (!searchQuery) return [];
-    return articles.filter(a => 
-      a.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      a.content.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [searchQuery]);
-
-  const activeArticle = useMemo(() => 
-    articles.find(a => a.id === activeArticleId), 
-  [activeArticleId]);
-
-  const stats = useMemo(() => {
-    const categories = new Set(articles.map(a => a.path.split('/')[0]));
-    return {
-      totalArticles: articles.length,
-      categories: categories.size
+    <!-- MathJax (TeX Rendering) -->
+    <script>
+    window.MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']],
+            tags: 'ams' // Equation numbering
+        },
+        options: {
+            renderActions: {
+                addMenu: [0, '', ''] // Disable right-click menu for cleaner look
+            }
+        }
     };
-  }, []);
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
 
-  const handleRandom = () => {
-    const random = articles[Math.floor(Math.random() * articles.length)];
-    setActiveArticleId(random.id);
-    if (window.innerWidth < 768) setSidebarOpen(false);
-  };
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-  return (
-    <div className="min-h-screen bg-slate-900 text-slate-200 font-sans selection:bg-cyan-500/30 selection:text-cyan-100 overflow-hidden flex flex-col">
-      {/* Background Effects */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(18,18,23,0)_2px,transparent_2px),linear-gradient(90deg,rgba(18,18,23,0)_2px,transparent_2px)] bg-[size:40px_40px] [background-position:center] opacity-20 border-slate-700/20"></div>
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-pink-500/50 to-transparent"></div>
-        <div className="absolute inset-0 bg-slate-900/80"></div>
-      </div>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0c; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1c1e2e; 
+            border: 1px solid #00f0ff;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00f0ff;
+        }
 
-      {/* Header */}
-      <header className="relative z-30 h-16 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md flex items-center justify-between px-4 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.5)]">
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-slate-800 rounded-md text-cyan-400 transition-colors z-50"
-          >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-          <div 
-            onClick={() => {
-              setActiveArticleId(null);
-              if (window.innerWidth < 768) setSidebarOpen(false);
-            }}
-            className="flex items-center gap-2 cursor-pointer group"
-          >
-            <Terminal size={20} className="text-pink-500 group-hover:text-pink-400 transition-colors" />
-            <span className="font-bold tracking-wider text-lg hidden sm:block font-mono group-hover:text-white transition-colors">
-              F_WIKI<span className="animate-pulse text-cyan-400">_</span>
-            </span>
-          </div>
-        </div>
+        /* Sci-Fi Glow Effects */
+        .neon-text {
+            text-shadow: 0 0 5px rgba(0, 240, 255, 0.5);
+        }
+        .neon-border {
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
+        }
 
-        <div className="flex-1 max-w-md mx-4">
-          <div className="relative group">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full bg-slate-800/50 border border-slate-700 rounded-full py-1.5 pl-10 pr-4 text-sm focus:outline-none focus:border-cyan-500/50 focus:bg-slate-800 transition-all text-slate-200 placeholder-slate-500"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
-            
-            {/* Search Dropdown */}
-            {searchQuery && (
-              <div className="absolute top-full mt-2 left-0 right-0 bg-slate-900 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto z-50">
-                {filteredArticles.length > 0 ? (
-                  filteredArticles.map(article => (
-                    <div 
-                      key={article.id}
-                      onClick={() => {
-                        setActiveArticleId(article.id);
-                        setSearchQuery('');
-                        if (window.innerWidth < 768) setSidebarOpen(false);
-                      }}
-                      className="px-4 py-3 hover:bg-slate-800 cursor-pointer border-b border-slate-800/50 last:border-0"
-                    >
-                      <div className="text-cyan-400 text-sm font-semibold">{article.title}</div>
-                      <div className="text-slate-500 text-xs truncate">{article.path}</div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-4 text-center text-slate-500 text-sm">No results found</div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 text-xs text-slate-500 font-mono hidden sm:block">
-          SYS: ONLINE
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden relative z-10">
+        /* Math Scroll Wrapper */
+        .math-scroll-wrapper {
+            overflow-x: auto;
+            max-width: 100%;
+            padding: 0.5rem 0;
+            margin-bottom: 1rem;
+            /* Hide scrollbar for cleaner look until hovered, or keep visible implies functionality */
+            -webkit-overflow-scrolling: touch;
+        }
         
-        {/* Mobile Overlay */}
-        {sidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 md:hidden animate-fadeIn"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
+        /* Loading Animation */
+        .loader {
+            border: 2px solid #1c1e2e;
+            border-top: 2px solid #00f0ff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        {/* Sidebar */}
-        <aside 
-          className={`
-            fixed md:relative z-30 top-16 md:top-0 bottom-0 w-[80%] max-w-sm md:w-72 
-            bg-slate-900 md:bg-slate-900/50 border-r border-slate-800 backdrop-blur-md
-            transition-all duration-300 ease-in-out transform shadow-2xl md:shadow-none
-            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:w-0 md:border-r-0 md:translate-x-0 overflow-hidden'}
-          `}
-        >
-          <div className="h-full overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 font-mono">
-              / Root Directory
+        /* Article Content Styling */
+        #article-content h1 { @apply text-3xl font-bold text-cyber-primary mb-6 border-b border-cyber-secondary/30 pb-2 mt-8; }
+        #article-content h2 { @apply text-2xl font-semibold text-white mb-4 mt-8 flex items-center before:content-['#'] before:text-cyber-secondary before:mr-2; }
+        #article-content h3 { @apply text-xl font-medium text-cyber-dim mb-3 mt-6; }
+        #article-content p { @apply mb-4 leading-relaxed text-cyber-text; }
+        #article-content ul { @apply list-disc list-inside mb-4 ml-4 text-cyber-text; }
+        #article-content ol { @apply list-decimal list-inside mb-4 ml-4 text-cyber-text; }
+        #article-content blockquote { @apply border-l-4 border-cyber-primary pl-4 py-1 my-4 bg-cyber-panel/50 italic; }
+        
+        /* Mobile adjustment for math */
+        mjx-container[display="true"] {
+            margin: 1em 0 !important;
+        }
+    </style>
+</head>
+<body class="bg-cyber-black text-cyber-text font-sans antialiased h-screen flex flex-col overflow-hidden selection:bg-cyber-primary selection:text-cyber-black">
+
+    <!-- Header -->
+    <header class="h-16 border-b border-cyber-panel bg-cyber-dark/80 backdrop-blur-md flex items-center justify-between px-4 z-50 shrink-0">
+        <div class="flex items-center gap-3">
+            <button id="menu-toggle" class="lg:hidden p-2 text-cyber-primary hover:bg-cyber-panel rounded transition">
+                <i data-lucide="menu"></i>
+            </button>
+            <div class="flex items-center gap-2 cursor-pointer" onclick="loadArticle('home')">
+                <i data-lucide="cpu" class="text-cyber-primary"></i>
+                <h1 class="font-mono text-lg font-bold tracking-wider text-white neon-text">NEO-WIKI <span class="text-xs text-cyber-secondary align-top">v1.0</span></h1>
             </div>
-            {Object.values(tree).map((node) => (
-              <FileTree 
-                key={node.name} 
-                node={node} 
-                onSelect={(id) => {
-                  setActiveArticleId(id);
-                  if (window.innerWidth < 768) setSidebarOpen(false);
-                }} 
-                currentArticleId={activeArticleId}
-              />
-            ))}
-          </div>
+        </div>
+        <div class="flex items-center gap-4 text-xs font-mono text-cyber-dim">
+            <span class="hidden md:inline-block">SYS.STATUS: <span class="text-green-400">ONLINE</span></span>
+            <a href="https://github.com" target="_blank" class="hover:text-white transition"><i data-lucide="github" class="w-5 h-5"></i></a>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden relative">
+        <!-- Sidebar (Navigation) -->
+        <aside id="sidebar" class="absolute lg:relative w-64 h-full bg-cyber-dark border-r border-cyber-panel transform -translate-x-full lg:translate-x-0 transition-transform duration-300 z-40 overflow-y-auto">
+            <div class="p-4">
+                <div class="text-xs font-mono text-cyber-primary mb-4 uppercase tracking-widest border-b border-cyber-panel pb-2">Directory</div>
+                
+                <!-- Navigation Tree -->
+                <nav id="nav-tree" class="space-y-1 font-mono text-sm">
+                    <!-- Dynamic Content populated by JS -->
+                </nav>
+            </div>
         </aside>
 
-        {/* Article View */}
-        <main className="flex-1 overflow-y-auto relative scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent w-full">
-          <div className="max-w-4xl mx-auto p-4 md:p-12 min-h-full pb-24">
-            {!activeArticle ? (
-              <Dashboard stats={stats} onRandom={handleRandom} />
-            ) : (
-              <div className="animate-fadeIn">
-                {/* Breadcrumb */}
-                <div className="flex flex-wrap items-center gap-2 text-xs text-cyan-500/70 font-mono mb-6">
-                  <Home size={12} className="cursor-pointer hover:text-cyan-400" onClick={() => setActiveArticleId(null)} />
-                  {activeArticle.path.split('/').map((part, i) => (
-                    <React.Fragment key={i}>
-                      <span>/</span>
-                      <span className={i === activeArticle.path.split('/').length - 1 ? 'text-cyan-300' : ''}>{part}</span>
-                    </React.Fragment>
-                  ))}
+        <!-- Overlay for mobile sidebar -->
+        <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden backdrop-blur-sm"></div>
+
+        <!-- Main Content -->
+        <main class="flex-1 relative overflow-y-auto bg-cyber-black" id="main-scroll">
+            <!-- Decorative Grid Background -->
+            <div class="absolute inset-0 z-0 pointer-events-none opacity-20" 
+                style="background-image: linear-gradient(#1c1e2e 1px, transparent 1px), linear-gradient(90deg, #1c1e2e 1px, transparent 1px); background-size: 40px 40px;">
+            </div>
+
+            <div class="relative z-10 max-w-4xl mx-auto p-6 md:p-10 min-h-full">
+                <!-- Breadcrumbs -->
+                <div id="breadcrumbs" class="text-xs font-mono text-cyber-secondary mb-6 flex items-center gap-2">
+                    <span>ROOT</span> <i data-lucide="chevron-right" class="w-3 h-3"></i> <span class="text-cyber-primary">HOME</span>
                 </div>
 
-                {/* Article Header */}
-                <header className="mb-8 border-b border-slate-800 pb-8">
-                  <h1 className="text-2xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400 mb-4 leading-tight">
-                    {activeArticle.title}
-                  </h1>
-                  <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 text-xs md:text-sm text-slate-500 font-mono">
-                    <span className="flex items-center gap-1">
-                      <Terminal size={14} /> ID: {activeArticle.id}
-                    </span>
-                    <span className="hidden md:inline w-px h-4 bg-slate-700"></span>
-                    <span>UPDATED: {activeArticle.date}</span>
-                  </div>
-                </header>
+                <!-- Content Area -->
+                <article id="article-content" class="animate-fade-in pb-20">
+                    <!-- Content injected here -->
+                </article>
 
-                {/* Content */}
-                <div className="bg-slate-800/20 rounded-lg border border-slate-800 p-4 md:p-8 shadow-inner relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-2 opacity-10 pointer-events-none">
-                    <Atom size={100} />
-                  </div>
-                  <LatexContent content={activeArticle.content} />
+                <!-- Loading Indicator -->
+                <div id="loader" class="hidden absolute inset-0 flex items-center justify-center bg-cyber-black z-50">
+                    <div class="loader"></div>
                 </div>
-              </div>
-            )}
-          </div>
-          
-          {/* Footer */}
-          <footer className="absolute bottom-0 left-0 right-0 p-4 text-center text-[10px] md:text-xs text-slate-600 font-mono border-t border-slate-800/50 bg-slate-900/80 backdrop-blur">
-            FUTURE_WIKI SYSTEM &copy; 2026 // RENDERED IN {new Date().getFullYear()}
-          </footer>
+            </div>
         </main>
-      </div>
     </div>
-  );
-}
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        
+        // GitHub Pagesで運用する場合、このフラグをfalseにしてください。
+        // trueの場合: 以下の mockDatabase から記事を読み込みます。
+        // falseの場合: サーバー上の .tex ファイルを fetch() で取得しに行きます。
+        const IS_PREVIEW_MODE = true; 
+        
+        const REPO_BASE_URL = './docs/'; // 実際の運用時の .tex ファイル置き場
+
+        // --- 2. DATA STRUCTURE (File System) ---
+        
+        // 階層構造定義 (サイドバー用)
+        const directoryStructure = [
+            {
+                title: "Home",
+                id: "home",
+                icon: "home"
+            },
+            {
+                title: "Physics",
+                id: "physics",
+                icon: "atom",
+                children: [
+                    { title: "Quantum Mechanics", id: "quantum_basics", file: "physics/quantum.tex" },
+                    { title: "Relativity", id: "relativity", file: "physics/relativity.tex" }
+                ]
+            },
+            {
+                title: "Mathematics",
+                id: "math",
+                icon: "sigma",
+                children: [
+                    { title: "Linear Algebra", id: "linear_algebra", file: "math/linear_algebra.tex" },
+                    { title: "Calculus", id: "calculus", file: "math/calculus.tex" }
+                ]
+            },
+            {
+                title: "System Specs",
+                id: "specs",
+                icon: "terminal",
+                file: "system/specs.tex"
+            }
+        ];
+
+        // 擬似ファイルデータベース (プレビュー用)
+        // 実際には .tex ファイルの中身がここにあると仮定してください。
+        const mockDatabase = {
+            "home": String.raw`
+# Welcome to NEO-WIKI
+
+これは **LaTeX** ベースのパーソナルWikiシステムです。
+左側のナビゲーションから記事を選択してください。
+
+## 特徴
+- **外部ファイル参照**: 記事は独立した \`.tex\` ファイルとして管理可能。
+- **数式対応**: MathJaxによる高品質なレンダリング。
+- **モバイル最適化**: 長い数式はスクロール可能。
+
+## デモ数式
+$$ \int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi} $$
+            `,
+            "physics/quantum.tex": String.raw`
+# Quantum Mechanics Basics
+
+シュレーディンガー方程式（Schrödinger equation）は、量子力学における純粋状態の時間発展を記述する基礎方程式である。
+
+## 時間依存シュレーディンガー方程式
+
+$$ i\hbar \frac{\partial}{\partial t} \Psi(\mathbf{r},t) = \hat{H} \Psi(\mathbf{r},t) $$
+
+ここで、
+- $i$ : 虚数単位
+- $\hbar$ : プランク定数
+- $\hat{H}$ : ハミルトニアン演算子
+- $\Psi$ : 波動関数
+
+## 長い数式のスクロールテスト
+スマホで見た場合、以下の長い数式は横スクロール可能です。
+
+$$
+\begin{aligned}
+    f(x) &= a_0 + \sum_{n=1}^{\infty} \left( a_n \cos \frac{n\pi x}{L} + b_n \sin \frac{n\pi x}{L} \right) \\
+    &= \frac{1}{2L} \int_{-L}^{L} f(t) dt + \sum_{n=1}^{\infty} \left[ \left( \frac{1}{L} \int_{-L}^{L} f(t) \cos \frac{n\pi t}{L} dt \right) \cos \frac{n\pi x}{L} + \left( \frac{1}{L} \int_{-L}^{L} f(t) \sin \frac{n\pi t}{L} dt \right) \sin \frac{n\pi x}{L} \right]
+\end{aligned}
+$$
+            `,
+            "physics/relativity.tex": String.raw`
+# Theory of Relativity
+
+アインシュタインの場の方程式：
+
+$$ R_{\mu\nu} - \frac{1}{2}R g_{\mu\nu} + \Lambda g_{\mu\nu} = \frac{8\pi G}{c^4} T_{\mu\nu} $$
+
+時空の幾何学構造（左辺）と、物質・エネルギーの分布（右辺）を結びつける。
+            `,
+            "math/linear_algebra.tex": String.raw`
+# Linear Algebra
+
+固有値問題は次のように記述される。
+
+$$ A\mathbf{v} = \lambda\mathbf{v} $$
+
+行列 $A$ が対角化可能であるための条件などを記述する。
+            `,
+            "math/calculus.tex": String.raw`
+# Calculus
+
+微分積分の基本定理。
+
+$$ \frac{d}{dx} \int_{a}^{x} f(t) dt = f(x) $$
+            `,
+            "system/specs.tex": String.raw`
+# System Specifications
+
+## Architecture
+- **Frontend**: HTML5, Tailwind CSS
+- **Logic**: Vanilla JavaScript
+- **Rendering**: MathJax v3
+
+## How to Deploy on GitHub
+1. Create a repository.
+2. Enable GitHub Pages (Source: /root or /docs).
+3. Upload \`.tex\` files to the folder structure.
+4. Set \`IS_PREVIEW_MODE = false\` in JS.
+            `
+        };
+
+
+        // --- 3. SYSTEM LOGIC ---
+
+        const dom = {
+            navTree: document.getElementById('nav-tree'),
+            article: document.getElementById('article-content'),
+            sidebar: document.getElementById('sidebar'),
+            overlay: document.getElementById('overlay'),
+            breadcrumbs: document.getElementById('breadcrumbs'),
+            menuToggle: document.getElementById('menu-toggle'),
+            loader: document.getElementById('loader')
+        };
+
+        // Initialize Icons
+        lucide.createIcons();
+
+        // 3.1 Build Navigation
+        function buildNav(items, parentElement, level = 0) {
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = `ml-${level * 4}`;
+
+                const link = document.createElement('div');
+                link.className = `
+                    flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors
+                    ${level === 0 ? 'text-cyber-text hover:bg-cyber-panel hover:text-cyber-primary' : 'text-cyber-dim hover:text-white hover:bg-cyber-panel/50 text-xs'}
+                    group
+                `;
+                
+                // Click Handler
+                link.onclick = (e) => {
+                    e.stopPropagation();
+                    if (item.children) {
+                        // Toggle folder logic could go here
+                        const childContainer = div.querySelector('.children-container');
+                        if(childContainer) childContainer.classList.toggle('hidden');
+                        const icon = link.querySelector('.folder-icon');
+                        if(icon) icon.classList.toggle('rotate-90');
+                    } else {
+                        loadArticle(item.id, item.file, item.title);
+                        if(window.innerWidth < 1024) toggleSidebar(); // Close sidebar on mobile
+                    }
+                };
+
+                // Icon logic
+                let iconHtml = '';
+                if (item.icon) {
+                    iconHtml = `<i data-lucide="${item.icon}" class="w-4 h-4 text-cyber-secondary group-hover:text-cyber-primary transition-colors"></i>`;
+                } else if (!item.children) {
+                    iconHtml = `<i data-lucide="file-text" class="w-3 h-3 group-hover:text-cyber-primary transition-colors"></i>`;
+                } else {
+                    iconHtml = `<i data-lucide="chevron-right" class="w-3 h-3 folder-icon transition-transform"></i>`;
+                }
+
+                link.innerHTML = `${iconHtml}<span>${item.title}</span>`;
+                div.appendChild(link);
+
+                if (item.children) {
+                    const childrenContainer = document.createElement('div');
+                    childrenContainer.className = "children-container ml-2 border-l border-cyber-panel pl-2";
+                    buildNav(item.children, childrenContainer, level + 1);
+                    div.appendChild(childrenContainer);
+                }
+
+                parentElement.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        buildNav(directoryStructure, dom.navTree);
+
+
+        // 3.2 File Fetching & Parsing
+        async function fetchTexContent(fileId, filePath) {
+            dom.loader.classList.remove('hidden');
+
+            try {
+                let content = "";
+                
+                if (IS_PREVIEW_MODE) {
+                    // PREVIEW MODE: Load from JS Object
+                    // filePath が null の場合 (例: home)、id をキーにする
+                    const key = filePath || fileId;
+                    content = mockDatabase[key] || "# 404 Not Found\nFile not defined in mock database.";
+                    
+                    // Simulate network delay for realism
+                    await new Promise(r => setTimeout(r, 300));
+                } else {
+                    // REAL MODE: Fetch from server
+                    // filePath が無い場合はエラーあるいはデフォルトパス
+                    if (!filePath && fileId === 'home') {
+                         // Home content handling for real mode (could be a local string or a file)
+                         content = mockDatabase['home'];
+                    } else if (filePath) {
+                        const response = await fetch(filePath);
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        content = await response.text();
+                    } else {
+                        throw new Error("No file path specified");
+                    }
+                }
+
+                return content;
+
+            } catch (e) {
+                console.error(e);
+                return `# System Error\n\nCould not load content.\n\n\`${e.message}\``;
+            } finally {
+                dom.loader.classList.add('hidden');
+            }
+        }
+
+        function parseSimpleMarkdown(text) {
+            // Very simple Markdown-ish parser combined with TeX preservation
+            // 1. Sanitize HTML (Basic)
+            let html = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+            // 2. Headers
+            html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+            html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+
+            // 3. Bold/Italic
+            html = html.replace(/\*\*(.*?)\*\*/gim, '<strong class="text-white">$1</strong>');
+            html = html.replace(/\*(.*?)\*/gim, '<em>$1</em>');
+
+            // 4. Lists (Simple implementation)
+            html = html.replace(/^\- (.*$)/gim, '<ul><li>$1</li></ul>');
+            // Join adjacent lists (regex hack for simple lists)
+            html = html.replace(/<\/ul>\s*<ul>/gim, '');
+
+            // 5. Paragraphs (Split by double newline)
+            // Be careful not to break MathJax blocks defined by $$
+            // This is a naive implementation. For robust markdown, use a library like 'marked'
+            
+            // Temporary strategy: Replace double newlines with <br><br> unless inside math
+            // For this demo, we assume the user puts math in $$ $$ or uses standard markdown structure.
+            // We'll wrap lines that aren't headers/lists in <p> tags basically.
+            
+            const lines = html.split('\n');
+            let output = '';
+            let inList = false;
+
+            lines.forEach(line => {
+                if (line.startsWith('<h1>') || line.startsWith('<h2>') || line.startsWith('<h3>')) {
+                    output += line;
+                } else if (line.startsWith('<ul>')) {
+                    output += line;
+                } else if (line.trim() === '') {
+                    // Empty line
+                } else {
+                    // Check if it's part of a math block context (simplified)
+                    output += `<p>${line}</p>`;
+                }
+            });
+
+            // Clean up excessive p tags around block elements logic would go here in a full parser
+            // For this lightweight version, we stick to the regex replacements above for structure
+            // and return the regex processed string directly, trusting MathJax to find $$ delimiters.
+            
+            return html.replace(/\n/g, '<br>'); 
+        }
+
+        // 3.3 Main Load Function
+        async function loadArticle(id, file = null, title = "Home") {
+            // Update UI
+            document.querySelectorAll('#nav-tree .text-cyber-primary').forEach(el => {
+                if(!el.closest('h1')) el.classList.remove('text-cyber-primary'); // messy selector cleanup
+            });
+            
+            // Update Breadcrumbs
+            dom.breadcrumbs.innerHTML = `<span>ROOT</span> <i data-lucide="chevron-right" class="w-3 h-3"></i> <span class="text-cyber-primary uppercase">${title}</span>`;
+
+            // Fetch
+            const rawContent = await fetchTexContent(id, file);
+            
+            // Parse (Naive Markdown + Raw TeX)
+            const htmlContent = parseSimpleMarkdown(rawContent);
+            dom.article.innerHTML = htmlContent;
+
+            // Typeset Math
+            if (window.MathJax) {
+                await MathJax.typesetPromise([dom.article]);
+                applyMathScroll();
+            }
+
+            // Scroll to top
+            document.getElementById('main-scroll').scrollTop = 0;
+        }
+
+        // 3.4 Math Scrolling Logic
+        function applyMathScroll() {
+            // MathJax 3 generates <mjx-container>. We need to wrap Display math to allow scrolling.
+            const mathDisplays = dom.article.querySelectorAll('mjx-container[display="true"]');
+            
+            mathDisplays.forEach(mjx => {
+                // Check if already wrapped
+                if (mjx.parentElement.classList.contains('math-scroll-wrapper')) return;
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'math-scroll-wrapper';
+                
+                mjx.parentNode.insertBefore(wrapper, mjx);
+                wrapper.appendChild(mjx);
+            });
+        }
+
+        // 3.5 UI Event Handlers
+        function toggleSidebar() {
+            dom.sidebar.classList.toggle('-translate-x-full');
+            dom.overlay.classList.toggle('hidden');
+        }
+
+        dom.menuToggle.addEventListener('click', toggleSidebar);
+        dom.overlay.addEventListener('click', toggleSidebar);
+
+        // --- 4. INITIALIZATION ---
+        // Load Home on Start
+        window.addEventListener('DOMContentLoaded', () => {
+            loadArticle('home');
+        });
+
+    </script>
+</body>
+</html>
